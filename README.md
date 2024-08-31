@@ -1,0 +1,72 @@
+# SKIA BUILDER
+
+This is a python script and github actions workflow to manage building static libraries for [SKIA](https://skia.org/).
+
+The script automates the process of building the libraries for various platforms (macOS, iOS, Windows, WASM). It handles the setup of the build environment, cloning of the Skia repository, configuration of build parameters, and compilation. The script also includes functionality for creating universal binaries for macOS and a Swift Package and XCFramework for apple platforms.
+
+The GN Args are supplied in constants which you will need to tweak if you want to modify the build.
+
+## Building
+
+Skia's build scripts requires ninja and python3 to be installed on all platforms. Emscripten is installed via skia.
+
+## Helper commands
+
+There is a Makefile with helper commands to build the libraries for each platform (from macOS). On windows you can use the `build-win.sh` script.
+
+```bash
+make skia-mac # Build libraries for macOS
+make skia-ios # Build libraries for iOS
+make skia-wasm # Build libraries for WASM
+make skia-xcframework # Build XCFramework
+make skia-spm # Build Swift Package
+make example-mac # Build example for macOS
+make example-wasm # Build example for WASM
+make serve-wasm # Serve the WASM example
+```
+
+## Helper commands
+
+The script is called as follows
+
+```
+build-skia.py [-h] [-config {Debug,Release}] [-archs ARCHS] [-branch BRANCH] [--shallow] {mac,ios,win,spm,wasm}
+```
+
+## Building on macOS
+
+Note: you may need to call 
+
+```bash
+ulimit -n 2048
+```
+
+in order to increase the number of files that can be opened at once.
+
+### Build for macOS universal (arm64 & x86_64 intel)
+
+```bash
+python3 build-skia.py -config Release -branch chrome/m129 mac
+```
+
+### Build for iOS (including x86_64 simulator)
+
+```bash
+python3 build-skia.py -config Release -branch chrome/m129 ios
+```
+
+### Build a Swift package
+
+```bash
+python3 build-skia.py -config Release -branch chrome/m129 spm
+```
+
+## Building on Windows 
+
+On Windows, you need to install LLVM in order to compile Skia with clang, as recommened by the authors.
+
+LLVM should be installed in `C:\Program Files\LLVM\`
+
+```bash
+py -3 build-skia.py -config Release -branch chrome/m129 win
+```

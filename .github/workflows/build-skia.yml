@@ -1,0 +1,123 @@
+name: Build Skia
+run-name: Build Skia
+on:
+  # push:
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode (skip Skia build)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-skia:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: wasm
+          - os: macos-latest
+            platform: mac
+          - os: macos-latest
+            platform: ios
+          - os: windows-latest
+            platform: win
+    runs-on: ${{ matrix.os }}
+    env:
+      SKIA_BRANCH: chrome/m129
+    outputs:
+      skia_branch: ${{ env.SKIA_BRANCH }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "17.0.6"
+          env: true
+  
+      - name: Set Git default branch
+        run: git config --global init.defaultBranch main
+
+      - name: Cache depot_tools and Skia source
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/tmp/depot_tools
+            build/src/skia
+          key: ${{ runner.os }}-depot_tools-skia-${{ env.SKIA_BRANCH }}-${{ hashFiles('build-skia.py') }}
+
+      # - name: Build Skia (Debug)
+      #   if: ${{ !inputs.test_mode }}
+      #   run: |
+      #     python3 build-skia.py ${{ matrix.platform }} -config Debug --shallow -branch ${{ env.SKIA_BRANCH }}
+  
+      - name: Build Skia (Release)
+        if: ${{ !inputs.test_mode }}
+        run: |
+          python3 build-skia.py ${{ matrix.platform }} -config Release --shallow -branch ${{ env.SKIA_BRANCH }}
+  
+      - name: Create dummy files for test mode
+        if: ${{ inputs.test_mode }}
+        run: |
+          mkdir -p build/include
+          mkdir -p build/${{ matrix.platform }}
+          echo "Test file" > build/include/test.h
+          echo "Test lib" > build/${{ matrix.platform }}/test.lib
+          echo "GN args summary" > build/${{ matrix.platform }}/gn_args.txt
+
+      - name: Package binaries
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" == "macOS" ]; then
+            zip -r skia-build-${{ matrix.platform }}.zip build/include build/${{ matrix.platform }}
+          elif [ "${{ runner.os }}" == "Windows" ]; then
+            7z a -tzip skia-build-${{ matrix.platform }}.zip build/include build/${{ matrix.platform }}
+          elif [ "${{ runner.os }}" == "Linux" ]; then
+            zip -r skia-build-wasm.zip build/include build/wasm
+          else
+            echo "Unsupported OS"
+            exit 1
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skia-build-${{ matrix.platform }}
+          path: skia-build-${{ matrix.platform }}.zip
+
+      - name: Set SKIA_BRANCH output
+        run: echo "skia_branch=${{ env.SKIA_BRANCH }}" >> $GITHUB_OUTPUT
+
+  create-release:
+    needs: build-skia
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build-skia.outputs.skia_branch }}${{ inputs.test_mode && '-test' || '' }}
+          name: ${{ needs.build-skia.outputs.skia_branch }}${{ inputs.test_mode && ' (Test)' || '' }}
+          draft: false
+          prerelease: ${{ inputs.test_mode }}
+          files: |
+            ./skia-build-wasm/skia-build-wasm.zip
+            ./skia-build-ios/skia-build-ios.zip
+            ./skia-build-win/skia-build-win.zip
+            ./skia-build-mac/skia-build-mac.zip
+            # ./skia-build-spm/skia-build-spm.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
