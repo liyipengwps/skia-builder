@@ -2,6 +2,8 @@
 
 This is a python script and github actions workflow to manage building static libraries for [SKIA](https://skia.org/).
 
+![output](https://github.com/user-attachments/assets/b40cc273-272c-4f38-a64f-968327408fa5)
+
 The script automates the process of building the libraries for various platforms (macOS, iOS, Windows, WASM). It handles the setup of the build environment, cloning of the Skia repository, configuration of build parameters, and compilation. The script also includes functionality for creating universal binaries for macOS and a Swift Package and XCFramework for apple platforms.
 
 The GN Args are supplied in constants which you will need to tweak if you want to modify the build.
