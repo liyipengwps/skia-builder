@@ -34,7 +34,7 @@ make example-wasm # Build example for WASM
 make serve-wasm # Serve the WASM example
 ```
 
-## Helper commands
+## Build script
 
 The script is called as follows
 
