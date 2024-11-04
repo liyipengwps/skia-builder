@@ -15,6 +15,13 @@ Skia's build scripts requires ninja and python3 to be installed on all platforms
 There is a Makefile with helper commands to build the libraries for each platform (from macOS). On windows you can use the `build-win.sh` script.
 
 ```bash
+make example-mac # Build example for macOS (will also build libSkia etc)
+./example/build-mac/example
+Image saved as output.png
+```
+
+Other options:
+```bash
 make skia-mac # Build libraries for macOS
 make skia-ios # Build libraries for iOS
 make skia-wasm # Build libraries for WASM
