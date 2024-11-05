@@ -25,7 +25,7 @@ jobs:
             platform: win
     runs-on: ${{ matrix.os }}
     env:
-      SKIA_BRANCH: chrome/m129
+      SKIA_BRANCH: chrome/m130
     outputs:
       skia_branch: ${{ env.SKIA_BRANCH }}
     steps:
