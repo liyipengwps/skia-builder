@@ -63,10 +63,10 @@ python3 build-skia.py -config Release -branch chrome/m129 mac
 python3 build-skia.py -config Release -branch chrome/m129 ios
 ```
 
-### Build a Swift package
+### Build an XCFramework
 
 ```bash
-python3 build-skia.py -config Release -branch chrome/m129 spm
+python3 build-skia.py -config Release -branch chrome/m129 xcframework
 ```
 
 ## Building on Windows 
