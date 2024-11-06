@@ -109,6 +109,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          body: |
+            $(curl -s https://skia.googlesource.com/skia/+/refs/heads/${{ needs.build-skia.outputs.skia_branch }}/RELEASE_NOTES.md)
           tag_name: ${{ needs.build-skia.outputs.skia_branch }}${{ inputs.test_mode && '-test' || '' }}
           name: ${{ needs.build-skia.outputs.skia_branch }}${{ inputs.test_mode && ' (Test)' || '' }}
           draft: false
