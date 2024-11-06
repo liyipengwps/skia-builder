@@ -35,10 +35,6 @@ skia-wasm:
 skia-xcframework:
 	$(SKIA_BUILDER) xcframework
 
-# Create Swift Package
-skia-spm:
-	$(SKIA_BUILDER) spm
-
 # Build example
 example-mac: skia-mac
 	mkdir -p $(EXAMPLE_BUILD_DIR) && \

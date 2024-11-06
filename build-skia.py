@@ -243,13 +243,13 @@ class SkiaBuildScript:
         self.platform = None
         self.config = "Release"
         self.archs = []
-        self.spm = False
+        self.xcframework = False
         self.branch = None
 
     def parse_arguments(self):
         parser = argparse.ArgumentParser(description="Build Skia for macOS, iOS, Windows and WebAssembly")
-        parser.add_argument("platform", choices=["mac", "ios", "win", "wasm", "spm"], 
-                           help="Target platform or swift package")
+        parser.add_argument("platform", choices=["mac", "ios", "win", "wasm", "xcframework"], 
+                           help="Target platform or xcframework")
         parser.add_argument("-config", choices=["Debug", "Release"], default="Release", help="Build configuration")
         parser.add_argument("-archs", help="Target architectures (comma-separated)")
         parser.add_argument("-branch", help="Skia Git branch to checkout", default="main")
@@ -258,8 +258,8 @@ class SkiaBuildScript:
                            help="Create a zip archive containing all platform libraries")
         args = parser.parse_args()
 
-        if args.platform == "spm":
-            self.spm = True
+        if args.platform == "xcframework":
+            self.xcframework = True
             self.platform = "mac"  # We'll handle iOS separately
             self.config = "Release"
             self.archs = ["universal"]
@@ -484,63 +484,63 @@ class SkiaBuildScript:
                                 # print(f"Copied {rel_path} to {dest_file}")
 
 
-    def create_swift_package(self):
-        colored_print("Creating Swift package...", Colors.OKBLUE)
-        package_dir = BASE_DIR / "spm" / "Skia"
-        package_dir.mkdir(parents=True, exist_ok=True)
+#     def create_swift_package(self):
+#         colored_print("Creating Swift package...", Colors.OKBLUE)
+#         package_dir = BASE_DIR / "spm" / "Skia"
+#         package_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create package structure
-        (package_dir / "Sources" / "Skia").mkdir(parents=True, exist_ok=True)
-        (package_dir / "Skia").mkdir(parents=True, exist_ok=True)
+#         # Create package structure
+#         (package_dir / "Sources" / "Skia").mkdir(parents=True, exist_ok=True)
+#         (package_dir / "Skia").mkdir(parents=True, exist_ok=True)
 
-        # Move XCFramework
-        xcframework_src = BASE_DIR / "xcframework" / "Skia.xcframework"
-        xcframework_dest = package_dir / "Skia" / "Skia.xcframework"
-        if xcframework_src.exists():
-            if xcframework_dest.exists():
-                shutil.rmtree(xcframework_dest)
-            shutil.copytree(xcframework_src, xcframework_dest)
-            colored_print(f"Copied XCFramework to {xcframework_dest}", Colors.OKGREEN)
-        else:
-            colored_print(f"Warning: XCFramework not found at {xcframework_src}", Colors.WARNING)
+#         # Move XCFramework
+#         xcframework_src = BASE_DIR / "xcframework" / "Skia.xcframework"
+#         xcframework_dest = package_dir / "Skia" / "Skia.xcframework"
+#         if xcframework_src.exists():
+#             if xcframework_dest.exists():
+#                 shutil.rmtree(xcframework_dest)
+#             shutil.copytree(xcframework_src, xcframework_dest)
+#             colored_print(f"Copied XCFramework to {xcframework_dest}", Colors.OKGREEN)
+#         else:
+#             colored_print(f"Warning: XCFramework not found at {xcframework_src}", Colors.WARNING)
 
-        # Copy headers
-        headers_dest = package_dir / "Sources" / "Skia"
-        self.package_headers(headers_dest)
+#         # Copy headers
+#         headers_dest = package_dir / "Sources" / "Skia"
+#         self.package_headers(headers_dest)
 
-        # Create dummy.cpp
-        with open(package_dir / "Sources" / "Skia" / "dummy.cpp", "w") as f:
-            f.write("// This file is needed to make SPM happy\n")
+#         # Create dummy.cpp
+#         with open(package_dir / "Sources" / "Skia" / "dummy.cpp", "w") as f:
+#             f.write("// This file is needed to make SPM happy\n")
 
-        # Create Package.swift
-        package_swift_content = """
-// swift-tools-version:5.3
-import PackageDescription
+#         # Create Package.swift
+#         package_swift_content = """
+# // swift-tools-version:5.3
+# import PackageDescription
 
-let package = Package(
-    name: "Skia",
-    products: [
-        .library(
-            name: "Skia",
-            targets: ["Skia", "SkiaXCFramework"])
-    ],
-    targets: [
-        .target(
-            name: "Skia",
-            dependencies: ["SkiaXCFramework"],
-            path: "Sources",
-            publicHeadersPath: "Skia"),
-        .binaryTarget(
-            name: "SkiaXCFramework",
-            path: "Skia/Skia.xcframework"),
-    ],
-    cxxLanguageStandard: .cxx14
-)
-        """
-        with open(package_dir / "Package.swift", "w") as f:
-            f.write(package_swift_content)
+# let package = Package(
+#     name: "Skia",
+#     products: [
+#         .library(
+#             name: "Skia",
+#             targets: ["Skia", "SkiaXCFramework"])
+#     ],
+#     targets: [
+#         .target(
+#             name: "Skia",
+#             dependencies: ["SkiaXCFramework"],
+#             path: "Sources",
+#             publicHeadersPath: "Skia"),
+#         .binaryTarget(
+#             name: "SkiaXCFramework",
+#             path: "Skia/Skia.xcframework"),
+#     ],
+#     cxxLanguageStandard: .cxx14
+# )
+#         """
+#         with open(package_dir / "Package.swift", "w") as f:
+#             f.write(package_swift_content)
 
-        colored_print(f"Swift package created at {package_dir}", Colors.OKGREEN)
+#         colored_print(f"Swift package created at {package_dir}", Colors.OKGREEN)
     
 
     def cleanup(self):
@@ -645,7 +645,7 @@ let package = Package(
 
         self.sync_deps()
 
-        if "universal" in self.archs or self.spm:
+        if "universal" in self.archs or self.xcframework:
             self.archs = ["x86_64", "arm64"]
 
         for arch in self.archs:
@@ -656,7 +656,7 @@ let package = Package(
         if self.platform == "mac" and self.archs == ["x86_64", "arm64"]:
             self.create_universal_binary()
 
-        if self.spm:
+        if self.xcframework:
             # Build for macOS
             self.combine_libraries("mac", "universal")
 
@@ -670,8 +670,7 @@ let package = Package(
                 self.combine_libraries("ios", arch)
 
             self.package_headers(BASE_DIR / "include")
-            self.create_xcframework(with_headers=False)
-            self.create_swift_package()
+            self.create_xcframework(with_headers=True)
         else:
             self.package_headers(BASE_DIR / "include")
 
